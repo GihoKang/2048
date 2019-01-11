@@ -1,238 +1,241 @@
-var canvas = document.getElementById('canvas');
-var ctx = canvas.getContext('2d');
-var sizeInput = document.getElementById('size');
-var changeSize = document.getElementById('change-size');
-var scoreLabel = document.getElementById('score');
-var score = 0;
-var size = 4;
-var width = canvas.width / size - 6;
-var cells = [];
-var fontSize;
-var loss = false;
-startGame();
+var canv = document.getElementById("myCanvas");
+var printinput = document.getElementById("value");
 
-changeSize.onclick = function () {
-  if (sizeInput.value >= 2 && sizeInput.value <= 20) {
-    size = sizeInput.value;
-    width = canvas.width / size - 6;
-    console.log(sizeInput.value);
-    canvasClean();
-    startGame();
-  }
+let grid, score, flipGrid,len,compares;
+function setup() {  // initialize 
+    score = 0;
+    grid = [
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0]
+    ];
+    compares = [
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0]
+    ];
+    checksum = grid;  // grid checksum ;
+    moveCounter = 0;
+    addNumber();      // random value 추가 
+    addNumber();
+    draw();
 }
+function addNumber() {
+    let options = [];
 
-function cell(row, coll) {
-  this.value = 0;
-  this.x = coll * width + 5 * (coll + 1);
-  this.y = row * width + 5 * (row + 1);
-}
-
-function createCells() {
-  var i, j;
-  for(i = 0; i < size; i++) {
-    cells[i] = [];
-    for(j = 0; j < size; j++) {
-      cells[i][j] = new cell(i, j);
+    for(let i=0;i<4;i++) {
+        for(let j=0;j<4;j++) {
+            if(grid[i][j] === 0) {
+                options.push({
+                    x : i,
+                    y : j
+                });
+            }
+        }
     }
-  }
+    len = options.length;
+    if(len > 0) {
+        let positions;        
+        positions = Math.floor(Math.random()*options.length);
+        grid[options[positions].x][options[positions].y] = Math.random() < 0.9 ? 2 : 4;
+    } 
+}
+function draw() {
+    canv.width="2000";
+    canv.height="2000";
+
+    var canvs = canv.getContext("2d");
+    let i,j;
+
+    for(i=0;i<4;i++) {
+        for(j=0;j<4;j++) {
+            canvs.beginPath();
+            canvs.rect(20+(120*j), 20+(120*i), 120, 120);
+            canvs.strokeStyle = "rgba(100, 100, 255, 0.5)";
+            canvs.stroke();
+            canvs.closePath();
+
+            if(grid[i][j] !== 0) {
+                canvs.font = "40px Arial";
+                canvs.strokeText(grid[i][j],60+(120*j),80+(120*i));
+            }
+        }
+    }
+}
+function movs(values){
+    let tmp = score;
+    for(i=0;i<4;i++) {
+        for(j=0;j<4;j++){
+            compares[i][j] = grid[i][j];
+        }
+    }
+
+    if(values < 2) {
+        flip();
+        if(values === 0) {
+            for(i=0;i<4;i++)
+                flipGrid[i] = leftSlides(flipGrid[i])
+            leftCombine(flipGrid);
+        } else {
+            for(i=0;i<4;i++){
+                flipGrid[i] = rightSlides(flipGrid[i]);
+            }
+            rightCombine(flipGrid);
+        }
+        reloads();
+    } else if( values === 2) {
+        for(i=0;i<4;i++){
+            grid[i] = rightSlides(grid[i]);
+        }
+        rightCombine(grid);
+    } else if( values === 3) {
+        for(i=0;i<4;i++)
+            grid[i] = leftSlides(grid[i])
+        leftCombine(grid);
+    }
+    
+    if(correct()) {
+        draw();
+        addNumber();
+        draw();
+        printinput.innerHTML = 'Score : ' + score;
+        
+    }
+}
+// 타일을 왼쪽으로 옮김
+function leftSlides(grid) {
+    let i,j;
+    console.log(grid[0]);
+   
+    for(j=0;j<4;j++) {
+        for(i=1;i<4;i++) {
+            if(grid[i-1] === 0) {
+                grid[i-1] = grid[i];
+                grid[i] = 0;
+            }
+        }
+    }
+    return grid;
+}
+// 타일을 병합하고 빈공간을 채우기 위해 다시 호출하는 부분.
+function leftCombine(grid){
+    let i,j;
+
+    for(i=0;i<4;i++){
+        for(j=1;j<4;j++){
+            if(grid[i][j] === grid[i][j-1]) {
+                grid[i][j-1] += grid[i][j];
+                score += grid[i][j];
+                grid[i][j]=0;
+            }
+        }
+        leftSlides(grid[i]);
+    }
+}
+// 타일을 오른쪽으로 옮김
+function rightSlides(grid) {
+    let i,j;
+    
+    for(i=0;i<4;i++){
+        for(j=2;j>=0;j--) {
+            if(grid[j+1] === 0) {
+                grid[j+1] = grid[j];
+                grid[j]=0;
+            }
+        }
+    }
+    return grid;
+}
+// 타일을 병합하고 빈공간을 채우기 위해 다시 호출하는 부분.
+function rightCombine(grid){
+    let i,j;
+
+    for(i=0;i<4;i++){
+        for(j=2;j>=0;j--){
+            if(grid[i][j+1] === grid[i][j]) {
+                grid[i][j+1] += grid[i][j];
+                score += grid[i][j];
+                grid[i][j]=0;
+            }
+        }
+        rightSlides(grid[i]);
+    }
 }
 
-function drawCell(cell) {
-  ctx.beginPath();
-  ctx.rect(cell.x, cell.y, width, width);
-  switch (cell.value){
-    case 0 : ctx.fillStyle = '#A9A9A9'; break;
-    case 2 : ctx.fillStyle = '#D2691E'; break;
-    case 4 : ctx.fillStyle = '#FF7F50'; break;
-    case 8 : ctx.fillStyle = '#ffbf00'; break;
-    case 16 : ctx.fillStyle = '#bfff00'; break;
-    case 32 : ctx.fillStyle = '#40ff00'; break;
-    case 64 : ctx.fillStyle = '#00bfff'; break;
-    case 128 : ctx.fillStyle = '#FF7F50'; break;
-    case 256 : ctx.fillStyle = '#0040ff'; break;
-    case 512 : ctx.fillStyle = '#ff0080'; break;
-    case 1024 : ctx.fillStyle = '#D2691E'; break;
-    case 2048 : ctx.fillStyle = '#FF7F50'; break;
-    case 4096 : ctx.fillStyle = '#ffbf00'; break;
-    default : ctx.fillStyle = '#ff0080';
-  }
-  ctx.fill();
-  if (cell.value) {
-    fontSize = width / 2;
-    ctx.font = fontSize + 'px Arial';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.fillText(cell.value, cell.x + width / 2, cell.y + width / 2 + width/7);
-  }
+//grid 를 플립하여 Up 과 Down 무브를 한번에 할수 있도록 하는 함수
+function flip(){
+    flipGrid = [
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0],
+        [0,0,0,0]
+    ];
+    for(i=0;i<4;i++){
+        for(j=0;j<4;j++){
+            flipGrid[j][i] = grid[i][j];
+        }
+    }
 }
-
-function canvasClean() {
-  ctx.clearRect(0, 0, 500, 500);
+//flips grid 를 복구 하는 함수 
+function reloads() {
+    let i,j;
+    for(i=0;i<4;i++){
+        for(j=0;j<4;j++){
+            grid[i][j] = flipGrid[j][i];
+        }
+    }
 }
+// 타일의 이동이 있엇는지 없었는지 감지.
+function correct() { 
+    let i,j,k;
 
+    for(i=0;i<4;i++){
+        for(j=0;j<4;j++){
+            if(compares[i][j] !== grid[i][j])
+                return true;
+        }
+    }
+    if(len === 1) {  
+        addNumber(); // len 은 전 행위의 결과를 가지고 있음으로 len 을 업데이트 시켜주기 위해 호출함.
+        if(len === 0) {
+            for(k=0;k<4;k++){
+                movs(k);
+                for(i=0;i<4;i++){
+                    for(j=0;j<4;j++){
+                        if(compares[i][j] !== grid[i][j])
+                            break;
+                    }
+                } 
+                for(i=0;i<4;i++) {
+                    for(j=0;j<4;j++){
+                        grid[i][j] = compares[i][j] ;
+                    }
+                    break;        
+                }
+            }
+            if(i==3 && j==3 && k==3) {
+                if(compares[i][j] == grid[i][j]) {
+                    alert("YOU LOSE! ");
+                    setup();
+                }
+            }
+        }
+    } else 
+        return false;
+}
+setup();
 document.onkeydown = function (event) {
-  if (!loss) {
-    if (event.keyCode === 38 || event.keyCode === 87) {
-      moveUp(); 
-    } else if (event.keyCode === 39 || event.keyCode === 68) {
-      moveRight();
-    } else if (event.keyCode === 40 || event.keyCode === 83) {
-      moveDown(); 
-    } else if (event.keyCode === 37 || event.keyCode === 65) {
-      moveLeft(); 
-    }
-    scoreLabel.innerHTML = 'Score : ' + score;
-  }
-}
+    if (event.keyCode === 38 || event.keyCode === 87) {  // up 
+        movs(0);
+    } else if (event.keyCode === 40 || event.keyCode === 83) { // down 
+        movs(1);
+    } else if (event.keyCode === 39 || event.keyCode === 68) { // right
+        movs(2);
+    } else if (event.keyCode === 37 || event.keyCode === 65) { // left
+        movs(3);
+    } else if (event.keyCode === 82)
+        setup();
 
-function startGame() {
-  createCells();
-  drawAllCells();
-  pasteNewCell();
-  pasteNewCell();
-}
-
-function finishGame() {
-  canvas.style.opacity = '0.5';
-  loss = true;
-}
-
-function drawAllCells() {
-  var i, j;
-  for(i = 0; i < size; i++) {
-    for(j = 0; j < size; j++) {
-      drawCell(cells[i][j]);
-    }
-  }
-}
-
-function pasteNewCell() {
-  var countFree = 0;
-  var i, j;
-  for(i = 0; i < size; i++) {
-    for(j = 0; j < size; j++) {
-      if(!cells[i][j].value) {
-        countFree++;
-      }
-    }
-  }
-  if(!countFree) {
-    finishGame();
-    return;
-  }
-  while(true) {
-    var row = Math.floor(Math.random() * size);
-    var coll = Math.floor(Math.random() * size);
-    if(!cells[row][coll].value) {
-      cells[row][coll].value = 2 * Math.ceil(Math.random() * 2);
-      drawAllCells();
-      return;
-    }
-  }
-}
-
-function moveRight () {
-  var i, j;
-  var coll;
-  for(i = 0; i < size; i++) {
-    for(j = size - 2; j >= 0; j--) {
-      if(cells[i][j].value) {
-        coll = j;
-        while (coll + 1 < size) {
-          if (!cells[i][coll + 1].value) {
-            cells[i][coll + 1].value = cells[i][coll].value;
-            cells[i][coll].value = 0;
-            coll++;
-          } else if (cells[i][coll].value == cells[i][coll + 1].value) {
-            cells[i][coll + 1].value *= 2;
-            score +=  cells[i][coll + 1].value;
-            cells[i][coll].value = 0;
-            break;
-          } else {
-            break;
-          }
-        }
-      }
-    }
-  }
-  pasteNewCell();
-}
-
-function moveLeft() {
-  var i, j;
-  var coll;
-  for(i = 0; i < size; i++) {
-    for(j = 1; j < size; j++) {
-      if(cells[i][j].value) {
-        coll = j;
-        while (coll - 1 >= 0) {
-          if (!cells[i][coll - 1].value) {
-            cells[i][coll - 1].value = cells[i][coll].value;
-            cells[i][coll].value = 0;
-            coll--;
-          } else if (cells[i][coll].value == cells[i][coll - 1].value) {
-            cells[i][coll - 1].value *= 2;
-            score +=   cells[i][coll - 1].value;
-            cells[i][coll].value = 0;
-            break;
-          } else {
-            break; 
-          }
-        }
-      }
-    }
-  }
-  pasteNewCell();
-}
-
-function moveUp() {
-  var i, j, row;
-  for(j = 0; j < size; j++) {
-    for(i = 1; i < size; i++) {
-      if(cells[i][j].value) {
-        row = i;
-        while (row > 0) {
-          if(!cells[row - 1][j].value) {
-            cells[row - 1][j].value = cells[row][j].value;
-            cells[row][j].value = 0;
-            row--;
-          } else if (cells[row][j].value == cells[row - 1][j].value) {
-            cells[row - 1][j].value *= 2;
-            score +=  cells[row - 1][j].value;
-            cells[row][j].value = 0;
-            break;
-          } else {
-            break; 
-          }
-        }
-      }
-    }
-  }
-  pasteNewCell();
-}
-
-function moveDown() {
-  var i, j, row;
-  for(j = 0; j < size; j++) {
-    for(i = size - 2; i >= 0; i--) {
-      if(cells[i][j].value) {
-        row = i;
-        while (row + 1 < size) {
-          if (!cells[row + 1][j].value) {
-            cells[row + 1][j].value = cells[row][j].value;
-            cells[row][j].value = 0;
-            row++;
-          } else if (cells[row][j].value == cells[row + 1][j].value) {
-            cells[row + 1][j].value *= 2;
-            score +=  cells[row + 1][j].value;
-            cells[row][j].value = 0;
-            break;
-          } else {
-            break; 
-          }
-        }
-      }
-    }
-  }
-  pasteNewCell();
 }
